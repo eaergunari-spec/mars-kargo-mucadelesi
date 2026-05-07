@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mars Kargo Mücadelesi</title>
+    <style>
+        /* CSS Değişkenleri yerine doğrudan renk kodları kullanıldı (IE uyumluluğu için) */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif; 
+            background-color: #1a1a2e; 
+            color: #f0f0f0; 
+            margin: 0; 
+        }
+        header { 
+            background-color: #ae4d22; 
+            width: 100%; 
+            padding: 15px 0; 
+            text-align: center; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+        }
+        header h1 { margin: 0; }
+        .container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 20px; 
+            padding: 20px; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            justify-content: center; 
+        }
+        
+        .instructions { 
+            background: #2a2a3e; 
+            padding: 20px; 
+            border-radius: 10px; 
+            flex: 1; 
+            min-width: 300px; 
+        }
+        .stats { 
+            margin-top: 15px; 
+            padding: 15px; 
+            background: #111122; 
+            border-left: 4px solid #ae4d22; 
+        }
+        .highlight-text { color: #e27d60; font-size: 1.4em; font-weight: bold; }
+
+        /* GRID: %100 Uyumlu Float/Inline-Block yapısı */
+        .game-area { 
+            background: #2a2a4a; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.3); 
+        }
+        #grid { 
+            width: 400px; /* 10 hücre x 40px */
+            height: 400px;
+            background-color: #555; 
+            border: 4px solid #ae4d22;
+            box-sizing: content-box;
+        }
+        .cell { 
+            width: 40px; 
+            height: 40px; 
+            background-color: #1a1a2e; 
+            cursor: pointer; 
+            box-sizing: border-box; 
+            border: 1px solid #333; 
+            float: left; /* Grid yerine float kullanıldı, her tarayıcıda çalışır */
+        }
+        .cell:hover { background-color: #333355; }
+
+        /* Kargo Listesi */
+        .sidebar { width: 320px; background: #2a2a3e; padding: 15px; border-radius: 10px; }
+        .item-card { 
+            margin-bottom: 12px; padding: 12px; border-radius: 8px; cursor: pointer; 
+            color: #1a1a2e; font-weight: bold; position: relative; 
+            border: 3px solid transparent; 
+        }
+        .item-card span { display: block; font-size: 0.8em; font-weight: normal; margin-top: 4px; }
+        
+        /* Highlight: Seçili Kart */
+        .item-card.selected { 
+            border-color: #ffffff; 
+            box-shadow: 0 0 10px #ffffff;
+            transform: scale(1.03);
+        }
+
+        /* Tükendi: Pasif Kart */
+        .item-card.disabled { 
+            opacity: 0.3; 
+            cursor: not-allowed;
+        }
+
+        .qty-badge { 
+            position: absolute; top: 5px; right: 10px; 
+            background: #000000; color: #ffffff; 
+            padding: 2px 8px; border-radius: 10px; font-size: 0.75em; 
+        }
+        
+        /* Renkler (Pastel ve Net) */
+        .item-1 { background-color: #FFB7B2 !important; } /* Mercan */
+        .item-2 { background-color: #B2E2F2 !important; } /* Mavi */
+        .item-3 { background-color: #B2F2BB !important; } /* Yeşil */
+        .item-4 { background-color: #F2E2B2 !important; } /* Sarı */
+        .item-5 { background-color: #D1B2F2 !important; } /* Mor */
+
+        .submit-btn { 
+            background-color: #4CAF50; color: white; border: none; 
+            padding: 15px; border-radius: 5px; font-size: 1.1em; 
+            cursor: pointer; margin-top: 20px; width: 100%; 
+        }
+        .submit-btn:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <header><h1>🚀 Mars Kargo Mücadelesi</h1></header>
+    <div class="container">
+	
+        <div class="info-banner">
+            <h3>Mars'a Lojistiğin Maliyeti</h3>
+            <p>Mars'a 1 kg kargo taşımanın maliyeti, geçmiş verilere mi yoksa SpaceX Starship gibi yeniden kullanılabilir roketlerin gelecekteki projeksiyonlarına mı baktığınıza bağlı olarak büyük ölçüde değişmektedir. 2026 itibarıyla maliyetler, son derece yüksek fiyatlı tek yönlü bilimsel görevlerden, potansiyel olarak daha düşük olan büyük ölçekli ticari fiyatlara doğru bir geçiş sürecindedir. (https://marspedia.org/Cost_of_transportation)</p>
+            
+            <strong>Güncel Tahmini Maliyetler:</strong>
+            <ul>
+                <li><strong>Bilimsel Görev Ortalaması (Tarihsel):</strong> Kilogram başına yaklaşık 200.000$–250.000$+. Örnek açısından, 2021 Perseverance Rover görevinin (yaklaşık 1.025 kg) sadece fırlatma hizmetleri yaklaşık 232 milyon dolara mal olmuştur.</li>
+                <li><strong>Ara Projeksiyonlar (2030+):</strong> SpaceX, Mars yüzeyine kargo uçuşları için metrik ton (1.000 kg) başına 100 milyon dolarlık bir hedef fiyat belirlediğini ve bunun kilogram başına 100.000 dolara denk geldiğini ifade etmiştir.</li>
+				<li><strong>SpaceX Starship Hedefleri (Uzun Vadeli Hedef):</strong> SpaceX, maliyeti Mars yüzeyine inen kilogram başına 100$ ile 140$ kadar düşük bir seviyeye indirmeyi hedeflediğini belirtti; ancak bu, yüksek hacimli, tamamen yeniden kullanılabilir ve yörüngede yakıt ikmali yapılan uçuşları varsaymaktadır.</li>
+                
+            </ul>
+        </div>
+		
+        <div class="instructions">
+            <h2>Kargo Planı</h2>
+            <p><strong>Kısıtlar:</strong> </p>
+			<p>10x10 Alan, 850 kg Kapasite.</p>
+			<p>En az 1 adet su filtresi yüklenmeli.</p>
+		
+            <p style="background: #ae4d22; padding: 10px; border-radius: 5px;">
+                <strong>Kullanım:</strong> Sağdan bir kargo seçin (etrafı beyaz olur), ardından grid üzerinde boş bir kareye tıklayarak yerleştirin. 
+                Çıkarmak için grid üzerindeki yerleşmiş kargoya tıklayın.
+            </p>
+<div style="margin-top: 15px;">
+    <label for="team-name"><strong>Takım Adı:</strong></label>
+    <input 
+        id="team-name" 
+        type="text" 
+        placeholder="Örn. Takım 1" 
+        style="width: 100%; padding: 10px; margin-top: 6px; border-radius: 5px; border: none; font-size: 1em;"
+    >
+</div>
+            <div class="stats">
+                <div>Toplam Puan: <span id="current-score" class="highlight-text">0</span></div>
+                <div>Toplam Ağırlık: <span id="current-weight">0</span> / 850 kg</div>
+                <div>Alan: <span id="usage">0</span> / 100 br²</div>
+            </div>
+            <button class="submit-btn" onclick="submitSolution()">Çözümü Gönder</button>
+        </div>
+
+        <div class="game-area">
+            <div id="grid"></div>
+        </div>
+
+        <div class="sidebar">
+            <h3>Envanter</h3>
+			<div id="card-1" class="item-card item-1" onclick="selectItem(1, 3, 3, 95, 105)">
+				1. Jeneratör (3x3)
+				<span class="qty-badge" id="qty-1">Kalan: 3</span>
+				<span>Puan: 95 | Ağırlık: 105kg</span>
+			</div>
+
+			<div id="card-2" class="item-card item-2" onclick="selectItem(2, 3, 5, 85, 35)">
+				2. Güneş Panelleri (3x5)
+				<span class="qty-badge" id="qty-2">Kalan: 4</span>
+				<span>Puan: 85 | Ağırlık: 35kg</span>
+			</div>
+
+			<div id="card-3" class="item-card item-3" onclick="selectItem(3, 4, 3, 110, 230)">
+				3. Yaşam Ünitesi (4x3)
+				<span class="qty-badge" id="qty-3">Kalan: 4</span>
+				<span>Puan: 110 | Ağırlık: 230kg</span>
+			</div>
+
+			<div id="card-4" class="item-card item-4" onclick="selectItem(4, 2, 3, 20, 30)">
+				4. Su Filtresi (2x3)
+				<span class="qty-badge" id="qty-4">Kalan: 10</span>
+				<span>Puan: 20 | Ağırlık: 30kg</span>
+			</div>
+
+			<div id="card-5" class="item-card item-5" onclick="selectItem(5, 4, 1, 40, 45)">
+				5. Tıbbi Kit (4x1)
+				<span class="qty-badge" id="qty-5">Kalan: 8</span>
+				<span>Puan: 40 | Ağırlık: 45kg</span>
+			</div>
+        </div>
+    </div>
+
+    <!-- Eski tarayıcılarla %100 uyumlu ES5 JavaScript Sürümü -->
+    <script>
+        var selectedItem = null;
+        var score = 0; 
+        var weight = 0; 
+        var occupied = 0;
+
+        // 10x10 Boş Grid Array Oluşturma
+        var gridState = [];
+        for (var i = 0; i < 10; i++) {
+            var row = [];
+            for (var j = 0; j < 10; j++) {
+                row.push(null);
+            }
+            gridState.push(row);
+        }
+
+        var inventory = { 1: 3, 2: 4, 3: 4, 4: 10, 5: 8 };
+        var specs = { 
+            1: {h:3, w:3, p:95, wg:85}, 
+            2: {h:2, w:5, p:85, wg:55}, 
+            3: {h:4, w:2, p:110, wg:115}, 
+            4: {h:2, w:2, p:35, wg:20}, 
+            5: {h:3, w:1, p:40, wg:45} 
+        };
+
+        // Grid'i HTML'e Çizme İşlemi
+        var gridEl = document.getElementById('grid');
+        for (var index = 0; index < 100; index++) {
+            var cell = document.createElement('div');
+            cell.className = 'cell';
+            
+            // Satır ve Sütun hesaplama
+            var r = Math.floor(index / 10);
+            var c = index % 10;
+            
+            // Tıklama olayını eski tarayıcılar için güvenli bağlama (Closure)
+            (function(row, col) {
+                cell.onclick = function() { handleCell(row, col); };
+            })(r, c);
+            
+            gridEl.appendChild(cell);
+        }
+
+        // Kargo Seçimi
+        function selectItem(id, h, w, p, wVal) {
+            if (inventory[id] <= 0) return; // Stok yoksa işlem yapma
+            
+            // Tüm kartlardan seçili efektini kaldır
+            var cards = document.getElementsByClassName('item-card');
+            for (var i = 0; i < cards.length; i++) {
+                cards[i].className = cards[i].className.replace(" selected", "");
+            }
+            
+            // Yeni öğeyi seç
+            selectedItem = { id: id, h: h, w: w, p: p, weightVal: wVal };
+            document.getElementById("card-" + id).className += " selected";
+        }
+
+        // Hücre Tıklama İşlemi
+        function handleCell(r, c) {
+            if (gridState[r][c] !== null) {
+                removeInstance(r, c);
+            } else if (selectedItem !== null) {
+                placeInstance(r, c);
+            }
+        }
+
+        // Kargo Yerleştirme
+        function placeInstance(r, c) {
+            // Dışarı taşma kontrolü
+            if (r + selectedItem.h > 10 || c + selectedItem.w > 10) {
+                alert("kargo seçili alana sığmıyor !");
+                return;
+            }
+            
+            // Üst üste binme kontrolü
+            for (var i = r; i < r + selectedItem.h; i++) {
+                for (var j = c; j < c + selectedItem.w; j++) {
+                    if (gridState[i][j] !== null) { 
+                        alert("kargo seçili alana sığmıyor !"); 
+                        return; 
+                    }
+                }
+            }
+            
+            // Eşsiz ID oluştur (silme işlemi için)
+            var iid = Math.random().toString().substr(2, 9);
+            
+            // Hücreleri doldur ve renklendir
+            for (var row = r; row < r + selectedItem.h; row++) {
+                for (var col = c; col < c + selectedItem.w; col++) {
+                    gridState[row][col] = { tid: selectedItem.id, iid: iid };
+                    var cellIndex = row * 10 + col;
+                    gridEl.children[cellIndex].className = "cell item-" + selectedItem.id;
+                }
+            }
+            
+            // Puan ve Stok güncelle
+            score += selectedItem.p; 
+            weight += selectedItem.weightVal; 
+            occupied += (selectedItem.h * selectedItem.w);
+            inventory[selectedItem.id]--;
+            updateUI();
+        }
+
+        // Kargo Çıkarma
+        function removeInstance(r, c) {
+            var target = gridState[r][c];
+            var targetIid = target.iid;
+            var targetTid = target.tid;
+            var targetSpecs = specs[targetTid];
+            
+            // Grid üzerinde aynı eşsiz ID'ye sahip tüm hücreleri bul ve temizle
+            for (var i = 0; i < 10; i++) {
+                for (var j = 0; j < 10; j++) {
+                    if (gridState[i][j] !== null && gridState[i][j].iid === targetIid) {
+                        gridState[i][j] = null;
+                        var cellIndex = i * 10 + j;
+                        gridEl.children[cellIndex].className = 'cell';
+                    }
+                }
+            }
+            
+            // Puan ve Stok geri ver
+            score -= targetSpecs.p; 
+            weight -= targetSpecs.wg; 
+            occupied -= (targetSpecs.h * targetSpecs.w);
+            inventory[targetTid]++;
+            updateUI();
+        }
+
+        // Ekranı Güncelleme
+        function updateUI() {
+            document.getElementById('current-score').innerText = score;
+            document.getElementById('current-weight').innerText = weight;
+            document.getElementById('usage').innerText = occupied;
+            
+            if (weight > 850) {
+                document.getElementById('current-weight').style.color = "#ff4d4d";
+            } else {
+                document.getElementById('current-weight').style.color = "#f0f0f0";
+            }
+
+            // Stok ve Kart durumlarını güncelle
+            for (var id = 1; id <= 5; id++) {
+                var card = document.getElementById("card-" + id);
+                document.getElementById("qty-" + id).innerText = "Kalan: " + inventory[id];
+                
+                if (inventory[id] <= 0) {
+                    if (card.className.indexOf("disabled") === -1) {
+                        card.className += " disabled";
+                    }
+                    card.className = card.className.replace(" selected", "");
+                    if (selectedItem !== null && selectedItem.id === id) {
+                        selectedItem = null; // Seçili öğe tükendiyse seçimi iptal et
+                    }
+                } else {
+                    card.className = card.className.replace(" disabled", "");
+                }
+            }
+        }
+
+        function submitSolution() {
+            if (weight > 850) { 
+                alert("DİKKAT: Kapasite aşıldı! Eşyaları azaltın."); 
+                return; 
+            }
+            alert("Harika! Çözüm kaydedildi.\n\nToplam Puan: " + score + "\nAlan Kullanımı: %" + occupied);
+        }
+    </script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { 
+        getFirestore, 
+        collection, 
+        addDoc, 
+        serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "BURAYA_KENDI_API_KEY",
+        authDomain: "BURAYA_KENDI_AUTH_DOMAIN",
+        projectId: "BURAYA_KENDI_PROJECT_ID",
+        storageBucket: "BURAYA_KENDI_STORAGE_BUCKET",
+        messagingSenderId: "BURAYA_KENDI_MESSAGING_SENDER_ID",
+        appId: "BURAYA_KENDI_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    function countPlacedItems(typeId) {
+        const instanceIds = {};
+
+        for (let r = 0; r < 10; r++) {
+            for (let c = 0; c < 10; c++) {
+                const cell = window.gridState[r][c];
+
+                if (cell !== null && cell.tid === typeId) {
+                    instanceIds[cell.iid] = true;
+                }
+            }
+        }
+
+        return Object.keys(instanceIds).length;
+    }
+
+    window.submitSolution = async function () {
+        const teamNameInput = document.getElementById("team-name");
+        const teamName = teamNameInput.value.trim();
+
+        if (!teamName) {
+            alert("Lütfen takım adını yazın.");
+            return;
+        }
+
+        if (window.weight > 850) {
+            alert("DİKKAT: Kapasite aşıldı! Eşyaları azaltın.");
+            return;
+        }
+
+        const waterFilterCount = countPlacedItems(4);
+
+        if (waterFilterCount < 1) {
+            alert("DİKKAT: En az 1 adet su filtresi yüklenmeli.");
+            return;
+        }
+
+        const submitButton = document.querySelector(".submit-btn");
+        submitButton.disabled = true;
+        submitButton.innerText = "Gönderiliyor...";
+
+        try {
+            await addDoc(collection(db, "marsSubmissions"), {
+                teamName: teamName,
+                score: window.score,
+                weight: window.weight,
+                occupied: window.occupied,
+                waterFilterCount: waterFilterCount,
+                feasible: true,
+                submittedAt: serverTimestamp()
+            });
+
+            alert(
+                "Çözüm başarıyla gönderildi!\n\n" +
+                "Takım: " + teamName + "\n" +
+                "Toplam Puan: " + window.score + "\n" +
+                "Toplam Ağırlık: " + window.weight + " kg\n" +
+                "Alan Kullanımı: %" + window.occupied
+            );
+
+        } catch (error) {
+            console.error(error);
+            alert("Çözüm gönderilirken hata oluştu. Lütfen tekrar deneyin.");
+        }
+
+        submitButton.disabled = false;
+        submitButton.innerText = "Çözümü Gönder";
+    };
+</script>
+</body>
+</html>

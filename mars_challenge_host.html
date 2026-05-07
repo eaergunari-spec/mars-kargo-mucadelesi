@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mars Kargo Mücadelesi - Yönetici Paneli</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h1 { color: #ae4d22; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #ae4d22; color: white; }
+        .optimal-grid { display: grid; grid-template-columns: repeat(10, 20px); gap: 2px; margin-top: 15px; }
+        .cell { width: 20px; height: 20px; background: #eee; border: 1px solid #ccc; }
+        .filled { background: #4CAF50; }
+        .btn-solve { background: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🛰️ Yönetici Dashboard</h1>
+
+    <div class="card">
+        <h2>Takım Sıralaması (Canlı)</h2>
+        <table>
+            <thead>
+                <tr>
+    <th>Sıra</th>
+    <th>Takım Adı</th>
+    <th>Puan</th>
+    <th>Ağırlık</th>
+    <th>Doluluk</th>
+    <th>Su Filtresi</th>
+</tr>
+            </thead>
+            <tbody id="leaderboard-body">
+    <tr>
+        <td colspan="6">Henüz gönderilen çözüm yok.</td>
+    </tr>
+</tbody>
+        </table>
+    </div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { 
+        getFirestore, 
+        collection, 
+        onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "BURAYA_KENDI_API_KEY",
+        authDomain: "BURAYA_KENDI_AUTH_DOMAIN",
+        projectId: "BURAYA_KENDI_PROJECT_ID",
+        storageBucket: "BURAYA_KENDI_STORAGE_BUCKET",
+        messagingSenderId: "BURAYA_KENDI_MESSAGING_SENDER_ID",
+        appId: "BURAYA_KENDI_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const tbody = document.getElementById("leaderboard-body");
+
+    onSnapshot(collection(db, "marsSubmissions"), function (snapshot) {
+        const submissions = [];
+
+        snapshot.forEach(function (doc) {
+            submissions.push(doc.data());
+        });
+
+        submissions.sort(function (a, b) {
+            if (b.score !== a.score) {
+                return b.score - a.score;
+            }
+
+            if (a.weight !== b.weight) {
+                return a.weight - b.weight;
+            }
+
+            return b.occupied - a.occupied;
+        });
+
+        if (submissions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6">Henüz gönderilen çözüm yok.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = "";
+
+        submissions.forEach(function (s, index) {
+            const row = document.createElement("tr");
+
+            row.innerHTML =
+                "<td>" + (index + 1) + "</td>" +
+                "<td>" + escapeHtml(s.teamName || "-") + "</td>" +
+                "<td>" + s.score + "</td>" +
+                "<td>" + s.weight + " kg</td>" +
+                "<td>%" + s.occupied + "</td>" +
+                "<td>" + s.waterFilterCount + "</td>";
+
+            tbody.appendChild(row);
+        });
+    });
+
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
+</body>
+</html>
